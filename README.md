@@ -57,7 +57,7 @@ print(matches)  # [('This is an example', 100)]
 
 ---
 
-## **⚙️ Configuring `ABBREVIATIONS` and `IGNORE_SIMILAR`**
+## **⚙️ Configuring `ABBREVIATIONS` and `IGNORE_COMBINATIONS`**
 ### **1️⃣ `ABBREVIATIONS` (Expanding Shortened Words)**
 Define **common abbreviations** to be expanded **before matching**:
 ```python
@@ -75,15 +75,16 @@ expand_abbreviations("e.g. bananas")  # "for example bananas"
 
 ---
 
-### **2️⃣ `IGNORE_SIMILAR` (Excluding Certain Matches)**
-By default, **fuzzy search may return matches that should not be considered similar**. Use `IGNORE_SIMILAR` to define **patterns of phrases that should be ignored** from results.
+### **2️⃣ `IGNORE_COMBINATIONS` (Excluding Specific Matches)**
+In some cases, fuzzy search may return matches that **should be ignored**. Use `IGNORE_COMBINATIONS` to **define specific phrase pairs** that should **never be considered matches**.
 
 ```python
-IGNORE_SIMILAR = [
-    (r"example \d+", "example"),  # Ensures "Example 1" and "Example 2" are ignored as duplicates.
-    (r"test case \d+", "test case"),  # "Test Case 1" and "Test Case 2" will be treated as identical.
+IGNORE_COMBINATIONS = [
+    (r"example \d+", r"example \d+"),  # Ignore matches between "Example 1" and "Example 2"
+    (r"test case \d+", r"test case \d+"),  # Ignore "Test Case 1" matching "Test Case 2"
 ]
 ```
+
 
 ### **🔍 Example Behavior**
 | Query       | Phrase         | Match Score | **Included in Results?** |

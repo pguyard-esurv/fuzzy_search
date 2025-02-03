@@ -18,10 +18,19 @@ ABBREVIATIONS = {
 }
 
 # List of patterns that should NOT be considered similar
+IGNORE_COMBINATIONS = [
+    (
+        r"example 1",
+        r"example 2",
+    ),  # Ignore matches between "Example 1" and "Example 2"
+    (r"test case \d+", r"test case \d+"),  # Ignore "Test Case 1" matching "Test Case 2"
+]
+
+# List of patterns that should NOT be considered similar
 IGNORE_SIMILAR = [
     (
-        r"example \d+",
-        "example",
+        r"developer \d+",
+        "developer",
     ),  # "Example 1" and "Example 2" should be treated as "Example"
 ]
 
@@ -55,7 +64,6 @@ def preprocess_text(text: str) -> str:
     try:
         text = expand_abbreviations(text)  # Expand abbreviations
         text = text.lower()  # Convert to lowercase
-        text = re.sub(r"\b\d+\b", "", text)  # Remove standalone numbers
         for pattern, replacement in IGNORE_SIMILAR:
             text = re.sub(pattern, replacement, text)  # Replace ignored patterns
         text = re.sub(r"\s+", " ", text).strip()  # Normalize spaces
@@ -67,8 +75,7 @@ def preprocess_text(text: str) -> str:
 
 def should_ignore_match(text1: str, text2: str) -> bool:
     """
-    Determines if a match should be ignored based on text normalisation.
-    If two different texts normalise to the same string, the match is ignored.
+    Determines if a match should be ignored based on specific exclusions.
 
     Args:
         text1 (str): First text.
@@ -79,7 +86,20 @@ def should_ignore_match(text1: str, text2: str) -> bool:
     """
     try:
         processed1, processed2 = preprocess_text(text1), preprocess_text(text2)
-        return processed1 == processed2  # Ignore if they normalize to the same string
+
+        # Check if the combination of text1 and text2 should be ignored
+        for pattern1, pattern2 in IGNORE_COMBINATIONS:
+            if (
+                re.fullmatch(pattern1, processed1)
+                and re.fullmatch(pattern2, processed2)
+            ) or (
+                re.fullmatch(pattern2, processed1)
+                and re.fullmatch(pattern1, processed2)
+            ):
+                logger.info(f"Ignoring match: '{text1}' <-> '{text2}'")
+                return True
+
+        return False
     except Exception as e:
         logger.error(f"Error in should_ignore_match: {e}")
         return False
@@ -120,7 +140,9 @@ def fuzzy_search(
         for orig, proc in processed_phrases.items():
             for match, score, _ in matches:
                 if proc == match and score >= threshold:
-                    if not should_ignore_match(query, orig):  # Exclude false positives
+                    if not should_ignore_match(
+                        query, orig
+                    ):  # Exclude unwanted combinations
                         results.append((orig, score))
 
         logger.info(
